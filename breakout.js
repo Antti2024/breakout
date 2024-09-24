@@ -144,6 +144,8 @@ function update() {
         score += 100*blockRows*blockColumns; //bonus points :)
         blockRows = Math.min(blockRows + 1, blockMaxRows);
         createBlocks();
+        let ballVelocityX = +5;
+        let ballVelocityY = +5;
         playAudio("/sound effects/victory.wav")
     }
 
