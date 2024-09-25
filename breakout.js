@@ -122,13 +122,14 @@ function update() {
     }
     else if (ball.y + ball.height >= boardHeight) {
         // if ball touches bottom of canvas
-        if (heartCount >= 0) {
+        if (heartCount > 0) {
             heartCount -= 1;
-            context.font = "20px sans-serif";
-            context.fillText("-1 Heart: 2 hearts remaining!", 120, 400);
             playAudio("/sound effects/health.wav")
+            // bounce back up
+            ball.velocityY *= -1;
+            
         }
-        else if (heartCount = 0) {
+        else if (heartCount === 0) {
 
             context.font = "20px sans-serif";
             context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
