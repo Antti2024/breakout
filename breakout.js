@@ -126,8 +126,7 @@ function update() {
             heartCount -= 1;
             playAudio("/sound effects/health.wav")
             // bounce back up
-            ball.velocityY *= -1;
-            
+            ball.velocityY *= -1;            
         }
         else if (heartCount === 0) {
 
