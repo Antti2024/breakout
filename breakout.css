@@ -3,6 +3,9 @@ body {
 }
 
 #board {
+    background-image: url("retro.jpg");
+    background-repeat: no-repeat; /* Estää taustakuvan toistumisen */
+    background-size: cover; /* Skalaa kuvan täyttämään koko elementti */
     background-color: black;
     border-top: 5px solid skyblue;
     border-left: 5px solid skyblue;

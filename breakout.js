@@ -37,6 +37,7 @@ let ball = {
 }
 
 //blocks
+
 let blockArray = [];
 let blockWidth = 50;
 let blockHeight = 10;
@@ -51,6 +52,19 @@ let blockY = 45;
 
 let score = 0;
 let gameOver = false;
+let lives = 3;
+
+let obstacleWidth = 50;
+let obstacleHeight = 10;
+let obstacleVelocityX = 2; // Este liikkuu hitaasti sivulle
+
+let obstacle = {
+    x: boardWidth / 2 - obstacleWidth / 2,
+    y: boardHeight / 3, // Voit säätää tätä korkeutta
+    width: obstacleWidth,
+    height: obstacleHeight,
+    velocityX: obstacleVelocityX
+}
 
 window.onload = function() {
     board = document.getElementById("board");
@@ -87,6 +101,23 @@ function update() {
     ball.y += ball.velocityY;
     context.fillRect(ball.x, ball.y, ball.width, ball.height);
 
+     // Este
+     context.fillStyle = "orange";
+     obstacle.x += obstacle.velocityX;
+
+      // Jos este osuu reunoihin, vaihda suuntaa
+    if (obstacle.x <= 0 || (obstacle.x + obstacle.width >= boardWidth)) {
+        obstacle.velocityX *= -1;
+    }
+
+    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    // Pallo kimpoaa esteestä
+    if (detectCollision(ball, obstacle)) {
+        ball.velocityY *= -1;
+        playAudio("/sound effects/hit.wav");
+    }
+
     //bounce the ball off player paddle
     if (topCollision(ball, player) || bottomCollision(ball, player)) {
         ball.velocityY *= -1;   // flip y direction up or down
@@ -109,15 +140,25 @@ function update() {
     }
     else if (ball.y + ball.height >= boardHeight) {
         // if ball touches bottom of canvas
+        lives -= 1; // vähennä yksi elämä
+        if (lives > 0) {
+            // Nollaa pallon sijainti ja suunta
+            ball.x = boardWidth / 2;
+            ball.y = boardHeight / 2;
+            ball.velocityX = ballVelocityX;
+            ball.velocityY = ballVelocityY;
+            playAudio("/sound effects/game over.wav");
+        } else { 
         context.font = "20px sans-serif";
         context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
         gameOver = true;
         playAudio ("/sound effects/game over.wav")
+        }
         
     }
 
     //blocks
-    context.fillStyle = "skyblue";
+    context.fillStyle = "red";
     for (let i = 0; i < blockArray.length; i++) {
         let block = blockArray[i];
         if (!block.break) {
@@ -150,6 +191,7 @@ function update() {
     //score
     context.font = "20px sans-serif";
     context.fillText(score, 10, 25);
+    context.fillText("Lives: " + lives, boardWidth - 100, 25); // Näytä elämät
 }
 
 function outOfBounds(xPosition) {
@@ -222,6 +264,7 @@ function createBlocks() {
 
 function resetGame() {
     gameOver = false;
+    lives = 3; 
     player = {
         x : boardWidth/2 - playerWidth/2,
         y : boardHeight - playerHeight - 5,
