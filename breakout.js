@@ -1,4 +1,4 @@
-function playAudio(audioclip){
+function playAudio(audioclip) {
     let audio = new Audio(audioclip);
     audio.play()
 }
@@ -6,7 +6,7 @@ function playAudio(audioclip){
 let board;
 let boardWidth = 500;
 let boardHeight = 500;
-let context; 
+let context;
 
 //players
 let playerWidth = 80; //500 for testing, 80 normal
@@ -14,11 +14,11 @@ let playerHeight = 10;
 let playerVelocityX = 10; //move 10 pixels each time
 
 let player = {
-    x : boardWidth/2 - playerWidth/2,
-    y : boardHeight - playerHeight - 5,
+    x: boardWidth / 2 - playerWidth / 2,
+    y: boardHeight - playerHeight - 5,
     width: playerWidth,
     height: playerHeight,
-    velocityX : playerVelocityX
+    velocityX: playerVelocityX
 }
 
 //ball
@@ -28,12 +28,12 @@ let ballVelocityX = 3; //15 for testing, 3 normal
 let ballVelocityY = 2; //10 for testing, 2 normal
 
 let ball = {
-    x : boardWidth/2,
-    y : boardHeight/2,
+    x: boardWidth / 2,
+    y: boardHeight / 2,
     width: ballWidth,
     height: ballHeight,
-    velocityX : ballVelocityX,
-    velocityY : ballVelocityY
+    velocityX: ballVelocityX,
+    velocityY: ballVelocityY
 }
 
 //blocks
@@ -41,10 +41,16 @@ let ball = {
 let blockArray = [];
 let blockWidth = 50;
 let blockHeight = 10;
-let blockColumns = 8; 
+let blockColumns = 8;
 let blockRows = 3; //add more as game goes on
 let blockMaxRows = 10; //limit how many rows
 let blockCount = 0;
+
+//hearts
+let heartWidth = 10;
+let heartHeight = 10;
+let heartCount = 3;
+
 
 //starting block corners top left 
 let blockX = 15;
@@ -57,6 +63,7 @@ let lives = 3;
 let obstacleWidth = 50;
 let obstacleHeight = 10;
 let obstacleVelocityX = 2; // Este liikkuu hitaasti sivulle
+let obstacleArray = []; // Esteiden taulukko
 
 let obstacle = {
     x: boardWidth / 2 - obstacleWidth / 2,
@@ -66,21 +73,22 @@ let obstacle = {
     velocityX: obstacleVelocityX
 }
 
-window.onload = function() {
+window.onload = function () {
     board = document.getElementById("board");
     board.height = boardHeight;
     board.width = boardWidth;
     context = board.getContext("2d"); //used for drawing on the board
 
     //draw initial player
-    context.fillStyle="skyblue";
+    context.fillStyle = "skyblue";
     context.fillRect(player.x, player.y, player.width, player.height);
 
     requestAnimationFrame(update);
     document.addEventListener("keydown", movePlayer);
 
-    //create blocks
+    // Luo palikat ja esteet
     createBlocks();
+    createObstacles(currentLevel); // Alussa yksi este
 }
 
 function update() {
@@ -95,67 +103,71 @@ function update() {
     context.fillStyle = "lightgreen";
     context.fillRect(player.x, player.y, player.width, player.height);
 
+    // hearts
+    context.fillStyle = "red";
+    for (let i = 0; i < heartCount; i++) {
+        context.fillRect(board.width - 70 + i * 20, 10, 10, 10)
+    }
+
+
     // ball
     context.fillStyle = "white";
     ball.x += ball.velocityX;
     ball.y += ball.velocityY;
     context.fillRect(ball.x, ball.y, ball.width, ball.height);
 
-     // Este
-     context.fillStyle = "orange";
-     obstacle.x += obstacle.velocityX;
+     // Esteet
+    context.fillStyle = "orange";
+    for (let i = 0; i < obstacleArray.length; i++) {
+        let obstacle = obstacleArray[i];
+        obstacle.x += obstacle.velocityX;
 
-      // Jos este osuu reunoihin, vaihda suuntaa
-    if (obstacle.x <= 0 || (obstacle.x + obstacle.width >= boardWidth)) {
-        obstacle.velocityX *= -1;
-    }
+        // Jos este osuu reunoihin, vaihda suuntaa
+        if (obstacle.x <= 0 || (obstacle.x + obstacle.width >= boardWidth)) {
+            obstacle.velocityX *= -1;
+        }
 
-    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
 
-    // Pallo kimpoaa esteestä
-    if (detectCollision(ball, obstacle)) {
-        ball.velocityY *= -1;
-        playAudio("/sound effects/hit.wav");
+        // Pallo kimpoaa esteestä
+        if (detectCollision(ball, obstacle)) {
+            ball.velocityY *= -1;
+            playAudio("/sound effects/hit.wav");
+        }
     }
 
     //bounce the ball off player paddle
     if (topCollision(ball, player) || bottomCollision(ball, player)) {
         ball.velocityY *= -1;   // flip y direction up or down
-        playAudio ("/sound effects/hit.wav")
+        playAudio("/sound effects/hit.wav")
     }
     else if (leftCollision(ball, player) || rightCollision(ball, player)) {
         ball.velocityX *= -1;   // flip x direction left or right
-        playAudio ("/sound effects/hit.wav")
+        playAudio("/sound effects/hit.wav")
     }
 
-    if (ball.y <= 0) { 
+    if (ball.y <= 0) {
         // if ball touches top of canvas
         ball.velocityY *= -1; //reverse direction
-        playAudio ("/sound effects/hit.wav")
+        playAudio("/sound effects/hit.wav")
     }
     else if (ball.x <= 0 || (ball.x + ball.width >= boardWidth)) {
         // if ball touches left or right of canvas
         ball.velocityX *= -1; //reverse direction
-        playAudio ("/sound effects/hit.wav")
+        playAudio("/sound effects/hit.wav")
     }
     else if (ball.y + ball.height >= boardHeight) {
         // if ball touches bottom of canvas
-        lives -= 1; // vähennä yksi elämä
-        if (lives > 0) {
-            // Nollaa pallon sijainti ja suunta
-            ball.x = boardWidth / 2;
-            ball.y = boardHeight / 2;
-            ball.velocityX = ballVelocityX;
-            ball.velocityY = ballVelocityY;
-            playAudio("/sound effects/game over.wav");
-        } else { 
+        
         context.font = "20px sans-serif";
         context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
         gameOver = true;
         playAudio ("/sound effects/game over.wav")
-        }
         
     }
+
+
+
 
     //blocks
     context.fillStyle = "red";
@@ -167,27 +179,28 @@ function update() {
                 ball.velocityY *= -1;   // flip y direction up or down
                 score += 100;
                 blockCount -= 1;
-                playAudio ("/sound effects/hit.wav")
+                playAudio("/sound effects/hit.wav")
             }
             else if (leftCollision(ball, block) || rightCollision(ball, block)) {
                 block.break = true;     // block is broken
                 ball.velocityX *= -1;   // flip x direction left or right
                 score += 100;
                 blockCount -= 1;
-                playAudio ("/sound effects/hit.wav")
+                playAudio("/sound effects/hit.wav")
             }
             context.fillRect(block.x, block.y, block.width, block.height);
         }
     }
 
-    //next level
-    if (blockCount == 0) {
-        score += 100*blockRows*blockColumns; //bonus points :)
-        blockRows = Math.min(blockRows + 1, blockMaxRows);
-        createBlocks();
-        playAudio("/sound effects/victory.wav")
-    }
-
+   // Seuraava taso
+   if (blockCount == 0) {
+    score += 100 * blockRows * blockColumns; // Bonuspisteet
+    blockRows = Math.min(blockRows + 1, blockMaxRows);
+    currentLevel++; // Päivitä taso
+    createBlocks();
+    createObstacles(currentLevel); // Lisää uusi este jokaiselle uudelle tasolle
+    playAudio("/sound effects/victory.wav");
+}
     //score
     context.font = "20px sans-serif";
     context.fillText(score, 10, 25);
@@ -197,6 +210,7 @@ function update() {
 function outOfBounds(xPosition) {
     return (xPosition < 0 || xPosition + playerWidth > boardWidth);
 }
+
 
 function movePlayer(e) {
     if (gameOver) {
@@ -224,9 +238,9 @@ function movePlayer(e) {
 
 function detectCollision(a, b) {
     return a.x < b.x + b.width &&   //a's top left corner doesn't reach b's top right corner
-           a.x + a.width > b.x &&   //a's top right corner passes b's top left corner
-           a.y < b.y + b.height &&  //a's top left corner doesn't reach b's bottom left corner
-           a.y + a.height > b.y;    //a's bottom left corner passes b's top left corner
+        a.x + a.width > b.x &&   //a's top right corner passes b's top left corner
+        a.y < b.y + b.height &&  //a's top left corner doesn't reach b's bottom left corner
+        a.y + a.height > b.y;    //a's bottom left corner passes b's top left corner
 }
 
 function topCollision(ball, block) { //a is above b (ball is above block)
@@ -250,35 +264,53 @@ function createBlocks() {
     for (let c = 0; c < blockColumns; c++) {
         for (let r = 0; r < blockRows; r++) {
             let block = {
-                x : blockX + c*blockWidth + c*10, //c*10 space 10 pixels apart columns
-                y : blockY + r*blockHeight + r*10, //r*10 space 10 pixels apart rows
-                width : blockWidth,
-                height : blockHeight,
-                break : false
+                x: blockX + c * blockWidth + c * 10, //c*10 space 10 pixels apart columns
+                y: blockY + r * blockHeight + r * 10, //r*10 space 10 pixels apart rows
+                width: blockWidth,
+                height: blockHeight,
+                break: false
             }
             blockArray.push(block);
         }
     }
     blockCount = blockArray.length;
 }
+// Luo esteet nykyisen tason perusteella
+function createObstacles(level) {
+    obstacleArray = []; // Tyhjennä aiemmat esteet
+
+    for (let i = 0; i < level; i++) {
+        let obstacle = {
+            x: Math.random() * (boardWidth - obstacleWidth),
+            y: boardHeight / 3 - (i * 30), // Lisää este korkeammalle jokaisella tasolla
+            width: obstacleWidth,
+            height: obstacleHeight,
+            velocityX: obstacleVelocityX
+        }
+        obstacleArray.push(obstacle);
+    }
+}
 
 function resetGame() {
     gameOver = false;
     lives = 3; 
+    currentLevel = 1; // Nollaa taso
+    createBlocks();
+    createObstacles(currentLevel); // Aloita yhdellä esteellä
     player = {
-        x : boardWidth/2 - playerWidth/2,
-        y : boardHeight - playerHeight - 5,
+        x: boardWidth / 2 - playerWidth / 2,
+        y: boardHeight - playerHeight - 5,
         width: playerWidth,
         height: playerHeight,
-        velocityX : playerVelocityX
+        velocityX: playerVelocityX
     }
     ball = {
-        x : boardWidth/2,
-        y : boardHeight/2,
+        x: boardWidth / 2,
+        y: boardHeight / 2,
         width: ballWidth,
         height: ballHeight,
-        velocityX : ballVelocityX,
-        velocityY : ballVelocityY
+        velocityX: ballVelocityX,
+        velocityY: ballVelocityY
     }
     blockArray = [];
     blockRows = 3;
