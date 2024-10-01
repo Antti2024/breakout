@@ -1,4 +1,8 @@
-//board
+function playAudio(audioclip){
+    let audio = new Audio(audioclip);
+    audio.play()
+}
+
 let board;
 let boardWidth = 500;
 let boardHeight = 500;
@@ -33,6 +37,7 @@ let ball = {
 }
 
 //blocks
+
 let blockArray = [];
 let blockWidth = 50;
 let blockHeight = 10;
@@ -47,6 +52,21 @@ let blockY = 45;
 
 let score = 0;
 let gameOver = false;
+
+let lives = 3;
+
+let obstacleWidth = 50;
+let obstacleHeight = 10;
+let obstacleVelocityX = 2; // Este liikkuu hitaasti sivulle
+
+let obstacle = {
+    x: boardWidth / 2 - obstacleWidth / 2,
+    y: boardHeight / 3, // Voit säätää tätä korkeutta
+    width: obstacleWidth,
+    height: obstacleHeight,
+    velocityX: obstacleVelocityX
+}
+
 
 window.onload = function() {
     board = document.getElementById("board");
@@ -83,27 +103,60 @@ function update() {
     ball.y += ball.velocityY;
     context.fillRect(ball.x, ball.y, ball.width, ball.height);
 
+    // Este
+    context.fillStyle = "orange";
+    obstacle.x += obstacle.velocityX;
+
+    // Jos este osuu reunoihin, vaihda suuntaa
+    if (obstacle.x <= 0 || (obstacle.x + obstacle.width >= boardWidth)) {
+        obstacle.velocityX *= -1;
+    }
+
+    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    // Pallo kimpoaa esteestä
+    if (detectCollision(ball, obstacle)) {
+        ball.velocityY *= -1;
+        playAudio("/sound effects/hit.wav");
+    }
+
     //bounce the ball off player paddle
     if (topCollision(ball, player) || bottomCollision(ball, player)) {
         ball.velocityY *= -1;   // flip y direction up or down
+        playAudio ("/sound effects/hit.wav")
     }
     else if (leftCollision(ball, player) || rightCollision(ball, player)) {
         ball.velocityX *= -1;   // flip x direction left or right
+        playAudio ("/sound effects/hit.wav")
     }
 
     if (ball.y <= 0) { 
         // if ball touches top of canvas
         ball.velocityY *= -1; //reverse direction
+        playAudio ("/sound effects/hit.wav")
     }
     else if (ball.x <= 0 || (ball.x + ball.width >= boardWidth)) {
         // if ball touches left or right of canvas
         ball.velocityX *= -1; //reverse direction
+        playAudio ("/sound effects/hit.wav")
     }
     else if (ball.y + ball.height >= boardHeight) {
-        // if ball touches bottom of canvas
-        context.font = "20px sans-serif";
-        context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
-        gameOver = true;
+        // Pallo osuu alareunaan, vähennä elämää
+            lives -= 1; // vähennä yksi elämä
+        if (lives > 0) {
+            // Nollaa pallon sijainti ja suunta
+            ball.x = boardWidth / 2;
+            ball.y = boardHeight / 2;
+            ball.velocityX = ballVelocityX;
+            ball.velocityY = ballVelocityY;
+            playAudio("/sound effects/game over.wav");
+        } else {
+            // Peli ohi, ei elämiä jäljellä
+            context.font = "20px sans-serif";
+            context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
+            gameOver = true;
+            playAudio("/sound effects/game over.wav");
+        }
     }
 
     //blocks
@@ -116,12 +169,14 @@ function update() {
                 ball.velocityY *= -1;   // flip y direction up or down
                 score += 100;
                 blockCount -= 1;
+                playAudio ("/sound effects/hit.wav")
             }
             else if (leftCollision(ball, block) || rightCollision(ball, block)) {
                 block.break = true;     // block is broken
                 ball.velocityX *= -1;   // flip x direction left or right
                 score += 100;
                 blockCount -= 1;
+                playAudio ("/sound effects/hit.wav")
             }
             context.fillRect(block.x, block.y, block.width, block.height);
         }
@@ -132,11 +187,13 @@ function update() {
         score += 100*blockRows*blockColumns; //bonus points :)
         blockRows = Math.min(blockRows + 1, blockMaxRows);
         createBlocks();
+        playAudio("/sound effects/victory.wav")
     }
 
     //score
     context.font = "20px sans-serif";
     context.fillText(score, 10, 25);
+    context.fillText("Lives: " + lives, boardWidth - 100, 25);// Näytä elämät
 }
 
 function outOfBounds(xPosition) {
@@ -190,7 +247,6 @@ function rightCollision(ball, block) { //a is right of b (ball is right of block
     return detectCollision(ball, block) && (block.x + block.width) >= ball.x;
 }
 
-
 function createBlocks() {
     blockArray = []; //clear blockArray
     for (let c = 0; c < blockColumns; c++) {
@@ -210,6 +266,7 @@ function createBlocks() {
 
 function resetGame() {
     gameOver = false;
+    lives = 3; // Palauta elämät kolmeen
     player = {
         x : boardWidth/2 - playerWidth/2,
         y : boardHeight - playerHeight - 5,
@@ -229,4 +286,4 @@ function resetGame() {
     blockRows = 3;
     score = 0;
     createBlocks();
-}
+} 
