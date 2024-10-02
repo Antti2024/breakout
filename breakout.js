@@ -154,16 +154,25 @@ function update() {
     else if (ball.x <= 0 || (ball.x + ball.width >= boardWidth)) {
         // if ball touches left or right of canvas
         ball.velocityX *= -1; //reverse direction
-        playAudio("/sound effects/hit.wav")
+        playAudio ("/sound effects/hit.wav")
     }
     else if (ball.y + ball.height >= boardHeight) {
-        // if ball touches bottom of canvas
-        
-        context.font = "20px sans-serif";
-        context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
-        gameOver = true;
-        playAudio ("/sound effects/game over.wav")
-        
+        // Pallo osuu alareunaan, vähennä elämää
+            lives -= 1; // vähennä yksi elämä
+        if (lives > 0) {
+            // Nollaa pallon sijainti ja suunta
+            ball.x = boardWidth / 2;
+            ball.y = boardHeight / 2;
+            ball.velocityX = ballVelocityX;
+            ball.velocityY = ballVelocityY;
+            playAudio("/sound effects/game over.wav");
+        } else {
+            // Peli ohi, ei elämiä jäljellä
+            context.font = "20px sans-serif";
+            context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
+            gameOver = true;
+            playAudio("/sound effects/game over.wav");
+        }
     }
 
 
