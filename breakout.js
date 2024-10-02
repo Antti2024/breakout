@@ -37,6 +37,7 @@ let ball = {
 }
 
 //blocks
+
 let blockArray = [];
 let blockWidth = 50;
 let blockHeight = 10;
@@ -57,6 +58,20 @@ let blockY = 45;
 
 let score = 0;
 let gameOver = false;
+let lives = 3;
+
+let obstacleWidth = 50;
+let obstacleHeight = 10;
+let obstacleVelocityX = 2; // Este liikkuu hitaasti sivulle
+let obstacleArray = []; // Esteiden taulukko
+
+let obstacle = {
+    x: boardWidth / 2 - obstacleWidth / 2,
+    y: boardHeight / 3, // Voit säätää tätä korkeutta
+    width: obstacleWidth,
+    height: obstacleHeight,
+    velocityX: obstacleVelocityX
+}
 
 window.onload = function () {
     board = document.getElementById("board");
@@ -71,8 +86,9 @@ window.onload = function () {
     requestAnimationFrame(update);
     document.addEventListener("keydown", movePlayer);
 
-    //create blocks
+    // Luo palikat ja esteet
     createBlocks();
+    createObstacles(currentLevel); // Alussa yksi este
 }
 
 function update() {
@@ -100,6 +116,26 @@ function update() {
     ball.y += ball.velocityY;
     context.fillRect(ball.x, ball.y, ball.width, ball.height);
 
+     // Esteet
+    context.fillStyle = "orange";
+    for (let i = 0; i < obstacleArray.length; i++) {
+        let obstacle = obstacleArray[i];
+        obstacle.x += obstacle.velocityX;
+
+        // Jos este osuu reunoihin, vaihda suuntaa
+        if (obstacle.x <= 0 || (obstacle.x + obstacle.width >= boardWidth)) {
+            obstacle.velocityX *= -1;
+        }
+
+        context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+        // Pallo kimpoaa esteestä
+        if (detectCollision(ball, obstacle)) {
+            ball.velocityY *= -1;
+            playAudio("/sound effects/hit.wav");
+        }
+    }
+
     //bounce the ball off player paddle
     if (topCollision(ball, player) || bottomCollision(ball, player)) {
         ball.velocityY *= -1;   // flip y direction up or down
@@ -122,26 +158,19 @@ function update() {
     }
     else if (ball.y + ball.height >= boardHeight) {
         // if ball touches bottom of canvas
-        if (heartCount > 0) {
-            heartCount -= 1;
-            playAudio("/sound effects/health.wav")
-            // bounce back up
-            ball.velocityY *= -1;            
-        }
-        else if (heartCount === 0) {
-
-            context.font = "20px sans-serif";
-            context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
-            gameOver = true;
-            playAudio("/sound effects/game over.wav")
-        }
+        
+        context.font = "20px sans-serif";
+        context.fillText("Game Over: Press 'Space' to Restart", 80, 400);
+        gameOver = true;
+        playAudio ("/sound effects/game over.wav")
+        
     }
 
 
 
 
     //blocks
-    context.fillStyle = "skyblue";
+    context.fillStyle = "red";
     for (let i = 0; i < blockArray.length; i++) {
         let block = blockArray[i];
         if (!block.break) {
@@ -163,19 +192,19 @@ function update() {
         }
     }
 
-    //next level
-    if (blockCount == 0) {
-        score += 100 * blockRows * blockColumns; //bonus points :)
-        blockRows = Math.min(blockRows + 1, blockMaxRows);
-        createBlocks();
-        let ballVelocityX = +5;
-        let ballVelocityY = +5;
-        playAudio("/sound effects/victory.wav")
-    }
-
+   // Seuraava taso
+   if (blockCount == 0) {
+    score += 100 * blockRows * blockColumns; // Bonuspisteet
+    blockRows = Math.min(blockRows + 1, blockMaxRows);
+    currentLevel++; // Päivitä taso
+    createBlocks();
+    createObstacles(currentLevel); // Lisää uusi este jokaiselle uudelle tasolle
+    playAudio("/sound effects/victory.wav");
+}
     //score
     context.font = "20px sans-serif";
     context.fillText(score, 10, 25);
+    context.fillText("Lives: " + lives, boardWidth - 100, 25); // Näytä elämät
 }
 
 function outOfBounds(xPosition) {
@@ -246,9 +275,28 @@ function createBlocks() {
     }
     blockCount = blockArray.length;
 }
+// Luo esteet nykyisen tason perusteella
+function createObstacles(level) {
+    obstacleArray = []; // Tyhjennä aiemmat esteet
+
+    for (let i = 0; i < level; i++) {
+        let obstacle = {
+            x: Math.random() * (boardWidth - obstacleWidth),
+            y: boardHeight / 3 - (i * 30), // Lisää este korkeammalle jokaisella tasolla
+            width: obstacleWidth,
+            height: obstacleHeight,
+            velocityX: obstacleVelocityX
+        }
+        obstacleArray.push(obstacle);
+    }
+}
 
 function resetGame() {
     gameOver = false;
+    lives = 3; 
+    currentLevel = 1; // Nollaa taso
+    createBlocks();
+    createObstacles(currentLevel); // Aloita yhdellä esteellä
     player = {
         x: boardWidth / 2 - playerWidth / 2,
         y: boardHeight - playerHeight - 5,
